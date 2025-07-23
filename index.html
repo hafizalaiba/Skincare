@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skin IQ Skincare & Recommendation</title>
+      <link rel="icon" href="{{ url_for('static', filename='uploads/img.png') }}?v=3" type="image/png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #9F7AEA;
+            --secondary: #ED64A6;
+            --dark: #2D3748;
+            --light: #F7FAFC;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #F3E8FF 0%, #FCE4EC 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .chat-container {
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            border-radius: 1rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-bubble {
+            max-width: 70%;
+            padding: 0.75rem 1.25rem;
+            margin: 0.5rem;
+            border-radius: 1.25rem;
+            position: relative;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease forwards;
+        }
+        
+        .user-bubble {
+            background-color: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 0.25rem;
+        }
+        
+        .bot-bubble {
+            background-color: white;
+            color: var(--dark);
+            margin-right: auto;
+            border-bottom-left-radius: 0.25rem;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1);
+        }
+        
+        .product-card {
+            transition: all 0.2s ease;
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }
+        
+        .skin-type-indicator.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .file-input-label {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .file-input-label:hover {
+            background-color: rgba(159, 122, 234, 0.1);
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin: 0 2px;
+            background-color: var(--dark);
+            opacity: 0;
+            animation: bounce 1.5s infinite ease-in-out;
+        }
+        
+        .typing-indicator span:nth-child(1) {
+            animation-delay: 0s;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .face-focus-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .face-focus-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                circle at center,
+                transparent 50%, 
+                rgba(255,255,255,0.4) 25%, 
+                rgba(255,255,255,0.4) 100%
+            );
+            border-radius: 0.5rem;
+            pointer-events: none;
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0% { border-color: rgba(159, 122, 234, 0.6); }
+            50% { border-color: rgba(159, 122, 234, 1); }
+            100% { border-color: rgba(159, 122, 234, 0.6); }
+        }
+        
+        .face-focus {
+            overflow: hidden;
+            position: relative;
+        }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+                opacity: 0.6;
+            }
+            50% {
+                transform: translateY(-5px);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-8">
+            <!-- <img src="" alt="DermAI logo in purple gradient with a skincare droplet icon" class="mx-auto mb-4"> -->
+            <h1 class="text-3xl md:text-4xl font-bold text-purple-800 mb-2">Skin IQ</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">Get personalized skincare advice, product recommendations, and analysis based on your skin type and concerns</p>
+        </header>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Panel - Skin Type Info -->
+            <div class="lg:col-span-1 bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4 text-purple-700">Skin Types</h2>
+                <div class="space-y-4 mb-6">
+                    <div class="skin-type-indicator p-3 rounded-lg border border-gray-200 transition-all cursor-pointer" data-type="normal">
+                        <h3 class="font-medium">Normal Skin</h3>
+                        <p class="text-sm text-gray-500">Well-balanced, few imperfections, not prone to sensitivity</p>
+                    </div>
+                    <div class="skin-type-indicator p-3 rounded-lg border border-gray-200 transition-all cursor-pointer" data-type="dry">
+                        <h3 class="font-medium">Dry Skin</h3>
+                        <p class="text-sm text-gray-500">Rough texture, flaky patches, tight after cleansing</p>
+                    </div>
+                    <div class="skin-type-indicator p-3 rounded-lg border border-gray-200 transition-all cursor-pointer" data-type="oily">
+                        <h3 class="font-medium">Oily Skin</h3>
+                        <p class="text-sm text-gray-500">Shiny appearance, enlarged pores, prone to acne</p>
+                    </div>
+                    <div class="skin-type-indicator p-3 rounded-lg border border-gray-200 transition-all cursor-pointer active" data-type="combination">
+                        <h3 class="font-medium">Combination Skin</h3>
+                        <p class="text-sm text-gray-500">Oily T-zone (forehead, nose, chin) with dry cheeks</p>
+                    </div>
+                    <div class="skin-type-indicator p-3 rounded-lg border border-gray-200 transition-all cursor-pointer" data-type="sensitive">
+                        <h3 class="font-medium">Sensitive Skin</h3>
+                        <p class="text-sm text-gray-500">Redness, irritation, reacts to products/fragrances</p>
+                    </div>
+                </div>
+                
+                <div class="bg-purple-50 rounded-lg p-4 space-y-3">
+                    <h3 class="font-medium text-purple-800">Analyze Your Skin</h3>
+                    <p class="text-sm text-purple-600">
+                        Choose a method to analyze your skin condition:
+                    </p>
+                    
+                    <div class="space-y-2">
+                        
+                        <!-- Upload Button -->
+                        <input type="file" id="skin-upload" accept="image/*" class="hidden" multiple>
+                        <label for="skin-upload" class="file-input-label flex items-center justify-center gap-2 border-2 border-purple-300 border-dashed rounded-lg p-3 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <span class="text-sm">Upload Photo</span>
+                        </label>
+                        
+                        <!-- Camera Button - Always visible on mobile -->
+                        <button id="camera-btn" class="w-full flex items-center justify-center gap-2 bg-purple-100 text-purple-700 rounded-lg p-3 transition hover:bg-purple-200">
+                            <!-- Add camera icon for mobile -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block lg:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span class="text-sm">Take Live Photo</span>
+                        </button>
+                        <!-- Show History Button -->
+<button id="showbtn" onclick="showHistory()" class="w-full flex items-center justify-center gap-2 bg-purple-100 text-purple-700 rounded-lg p-3 transition hover:bg-purple-200">
+  <!-- Clock icon (responsive) -->
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block lg:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span class="text-sm font-medium">View History</span>
+</button>
+
+<!-- Hidden History Container -->
+<div id="historyContainer" class="hidden mt-6 rounded-lg shadow-lg p-6 text-gray-800" style="background: linear-gradient(135deg, #F3E8FF 0%, #FCE4EC 100%);">
+
+  <h3 class="text-lg font-semibold mb-4 text-purple-700 dark:text-purple-600">Analysis History</h3>
+
+  <div id="historyList" class="space-y-4 text-sm text-gray-700 dark:text-black-500"></div>
+  
+  <div class="mt-6 text-right">
+  <button id="closebtn" onclick="closeHistory()" class="inline-flex items-center gap-2 bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 text-sm font-medium py-2 px-4 rounded-lg transition">
+    <!-- Close icon (X) -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+    <span>Close History</span>
+  </button>
+</div>
+
+</div>
+                    </div>
+                    <p class="text-xs text-purple-500 text-center">
+                        For best results: Remove makeup, face camera directly in good lighting
+                    </p>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span class="text-purple-700">Drag & drop or click to upload</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Main Chat Area -->
+            <div class="lg:col-span-2">
+                <div class="chat-container bg-white h-[600px] flex flex-col">
+                    <!-- Chat Header -->
+                    <div class="bg-gradient-to-r from-purple-600 to-pink-500 p-4 text-white">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3">
+                                <img src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Logo" class="h-6 w-6 rounded-full" />
+                                <!-- <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg> -->
+                            </div>
+                            <div>
+                                <h2 class="font-semibold">Skin IQ Assistant</h2>
+                                <p class="text-xs opacity-80">Online - Ready to help</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Messages Area -->
+                    <div class="flex-1 p-4 overflow-y-auto" id="chat-messages">
+                        <div class="bot-bubble chat-bubble">
+                            <p>👋 Hi there! I'm Skin IQ, your personal skincare assistant. I can help with:</p>
+                            <ul class="list-disc pl-5 mt-2 space-y-1">
+                                <li>Identifying your skin type</li>
+                                <li>Recommending products</li>
+                                <li>Analyzing skin concerns</li>
+                                <li>Creating custom routines</li>
+                            </ul>
+                            <p class="mt-2">What would you like help with today?</p>
+                        </div>
+                        
+                        <!-- Sample conversation will be loaded here -->
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <div class="border-t border-gray-200 p-4 bg-gray-50">
+                        <div class="flex items-center">
+                            <div class="relative flex-1">
+                                <input type="text" id="user-input" placeholder="Type your skincare question..." class="w-full pl-4 pr-12 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" autocomplete="off">
+                                <button id="send-btn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-purple-500 text-white rounded-full p-2 hover:bg-purple-600 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <button id="upload-btn" class="ml-2 p-3 text-gray-600 hover:text-purple-600 rounded-full hover:bg-gray-100 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product Recommendations Section -->
+        
+    </div>
+
+    <script>
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const uploadBtn = document.getElementById('upload-btn');
+            const skinUpload = document.getElementById('skin-upload');
+            const productRecommendationsSection = document.getElementById('product-recommendations');
+            const allProductCards = Array.from(document.querySelectorAll('.product-card')); // Get all product cards
+
+            // Sample responses from the bot
+            const botResponses = {
+                'hi': "Hello! How can I assist you with your skincare today? I can analyze your concerns and provide customized solutions for:",
+                'dry skin': {
+                    analysis: "Common dry skin concerns include flakiness, tightness, and irritation. This is often caused by damaged skin barrier, low humidity, or harsh products.",
+                    solution: "For dry skin treatment:<br>1. <strong>Gentle Cleanser</strong>: Avoid sulfates<br>2. <strong>Ceramide Moisturizer</strong>: CeraVe works best<br>3. <strong>Hydrating Serum</strong>: With hyaluronic acid<br>4. <strong>Occlusive</strong>: At night to lock in moisture<br><br>"
+                },
+                'oily skin': {
+                    analysis: "Oily skin shows excess shine, enlarged pores, and is prone to breakouts. Causes may include genetics, humidity, or over-cleansing.",
+                    solution: "For oily skin management:<br>1. <strong>Gel Cleanser</strong>: With salicylic acid<br>2. <strong>Oil-Free Moisturizer</strong>: Lightweight formula<br>3. <strong>Niacinamide Serum</strong>: Regulates sebum<br>4. <strong>Clay Mask</strong>: Weekly to absorb excess oil<br><br>"
+                },
+                'acne': {
+                    analysis: "Acne occurs when pores become clogged with oil and dead skin. Common triggers include hormones, stress, and certain products.",
+                    solution: "For acne treatment:<br>1. <strong>Salicylic Acid Cleanser</strong> (AM/PM)<br>2. <strong>Benzoyl Peroxide</strong> (spot treatment)<br>3. <strong>Non-comedogenic Moisturizer</strong><br>4. <strong>Retinol</strong> (PM, start weekly)<br><br>"
+                },
+                'combination skin': {
+  analysis: "Combination skin means oily T-zone and dry cheeks. It can be tricky to balance but manageable with the right routine.",
+  solution: "For combination skin care:<br>1. <strong>Gentle Cleanser</strong><br>2. <strong>Balancing Toner</strong><br>3. <strong>Lightweight Moisturizer</strong> for oily areas<br>4. <strong>Hydrating Cream</strong> for dry areas<br><br>"
+},
+'normal skin': {
+  analysis: "Normal skin has a balanced level of moisture, small pores, and an even tone. It is neither too oily nor too dry and is generally low maintenance.",
+  solution: "For normal skin care:<br>1. <strong>Gentle Cleanser</strong> (non-stripping)<br>2. <strong>Lightweight Moisturizer</strong> with hyaluronic acid<br>3. <strong>Broad-spectrum SPF 30+</strong> daily<br>4. <strong>Weekly exfoliation</strong> (AHA/BHA) to maintain clarity<br><br> "
+},
+
+
+'sensitive skin': {
+  analysis: "Sensitive skin reacts easily to harsh products and environment. Symptoms include redness, burning, and irritation.",
+  solution: "For sensitive skin care:<br>1. <strong>Fragrance-Free Cleanser</strong><br>2. <strong>Soothing Serum</strong> (with Centella or Oat)<br>3. <strong>Barrier Repair Moisturizer</strong><br>4. <strong>SPF 50+</strong> with no alcohol or fragrance<br><br>"
+},
+
+                'aging': {
+                    analysis: "Signs of aging include wrinkles, loss of firmness, and dullness. Caused by sun exposure, collagen loss, and natural aging process.",
+                    solution: "For anti-aging:<br>1. <strong>Vitamin C Serum</strong> (AM)<br>2. <strong>Retinol</strong> (PM, start slow)<br>3. <strong>Peptide Moisturizer</strong><br>4. <strong>SPF 30+ Daily</strong> (most important!)<br><br>"
+                },
+                'sensitive': {
+                    analysis: "Sensitive skin reacts easily with redness, burning, or itching. Common triggers include fragrances, alcohol, and harsh actives.",
+                    solution: "For sensitive skin care:<br>1. <strong>Fragrance-Free Products</strong><br>2. <strong>Soothing Ingredients</strong>: Ceramides, oat<br>3. <strong>Patch Test</strong> new products<br>4. <strong>Minimal Routine</strong>: Cleanse, moisturize, SPF<br><br> "
+                },
+                'upload': "Analyzing your photo...<br><br>Based on your skin analysis:<br>• Primary concern: <strong>{concern}</strong><br>• Skin type: <strong>{type}</strong><br><br>Recommended solution:<br>{solution}<br><br>Would you like me to create a customized routine?",
+                'product search': "Sure, I can help you find products. What type of product are you looking for? (e.g., cleanser, moisturizer, serum, sunscreen)",
+                'cleanser': "Here are some cleansers I recommend:",
+                'moisturizer': "Here are some moisturizers I recommend:",
+                'serum': "Here are some serums I recommend:",
+                'sunscreen': "Here are some sunscreens I recommend:",
+                'recommend products': "What kind of products are you interested in? You can ask for cleansers, moisturizers, serums, or sunscreens."
+            };
+            
+            // Skin type selection
+            const skinTypeIndicators = document.querySelectorAll('.skin-type-indicator');
+            // skinTypeIndicators.forEach(indicator => {
+            //     indicator.addEventListener('click', () => {
+            //         skinTypeIndicators.forEach(i => i.classList.remove('active', 'bg-purple-100', 'border-purple-300'));
+            //         indicator.classList.add('active', 'bg-purple-100', 'border-purple-300');
+                    
+            //         // Send a message to chat
+            //         const skinType = indicator.getAttribute('data-type');
+            //         addBotMessage(`You've selected <strong>${skinType.charAt(0).toUpperCase() + skinType.slice(1)}</strong> skin type. Would you like product recommendations or routine advice for this skin type?`);
+            //     });
+            // });
+            skinTypeIndicators.forEach(indicator => {
+  indicator.addEventListener('click', () => {
+    // remove active classes from others
+    skinTypeIndicators.forEach(i => i.classList.remove('active', 'bg-purple-100', 'border-purple-300'));
+    indicator.classList.add('active', 'bg-purple-100', 'border-purple-300');
+
+    // get skin type like "normal"
+    const skinType = indicator.getAttribute('data-type');
+    const typeKey = skinType + ' skin'; // like "normal skin"
+
+    if (botResponses[typeKey]) {
+      const res = botResponses[typeKey];
+      const message = `
+        <strong>Analysis:</strong><br>${res.analysis}<br><br>
+        <strong>Recommended Solution:</strong><br>${res.solution}
+      `;
+      addBotMessage(message);
+    } else {
+      addBotMessage(`You've selected <strong>${skinType}</strong> skin type. Would you like product recommendations?`);
+    }
+  });
+});
+
+
+            // Function to display products based on search term
+            function displayProducts(searchTerm) {
+                let foundProducts = [];
+                allProductCards.forEach(card => {
+                    const productType = card.getAttribute('data-product-type');
+                    if (productType && productType.includes(searchTerm.toLowerCase())) {
+                        foundProducts.push(card.outerHTML);
+                    }
+                });
+
+                if (foundProducts.length > 0) {
+                    addBotMessage(`${botResponses[searchTerm.toLowerCase()] || `Here are some products related to "${searchTerm}":`}<br><br>${foundProducts.join('')}`);
+                } else {
+                    addBotMessage(`I couldn't find any products matching "${searchTerm}". Please try a different keyword like "cleanser", "moisturizer", "serum", or "sunscreen".`);
+                }
+                // Scroll to the product recommendations section
+                productRecommendationsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Send message function
+            function sendMessage() {
+                const message = userInput.value.trim();
+                if (message === '') return;
+                
+                addUserMessage(message);
+                userInput.value = '';
+                
+                // Show typing indicator
+                const typingIndicator = document.createElement('div');
+                typingIndicator.className = 'bot-bubble chat-bubble typing-indicator';
+                typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+                chatMessages.appendChild(typingIndicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Simulate bot response after delay
+                setTimeout(() => {
+                    chatMessages.removeChild(typingIndicator);
+                    let response = "I'm not sure I understand. Could you rephrase your question? You can ask about skin types, products, routines, or upload a photo for analysis.";
+                    
+                    let foundMatch = false;
+                    const lowerCaseMessage = message.toLowerCase();
+
+                    // Check for product search keywords first
+                    if (lowerCaseMessage.includes('cleanser')) {
+                        displayProducts('cleanser');
+                        foundMatch = true;
+                    } else if (lowerCaseMessage.includes('moisturizer')) {
+                        displayProducts('moisturizer');
+                        foundMatch = true;
+                    } else if (lowerCaseMessage.includes('serum')) {
+                        displayProducts('serum');
+                        foundMatch = true;
+                    } else if (lowerCaseMessage.includes('sunscreen') || lowerCaseMessage.includes('spf')) {
+                        displayProducts('sunscreen');
+                        foundMatch = true;
+                    } else if (lowerCaseMessage.includes('product') || lowerCaseMessage.includes('recommend products')) {
+                        response = botResponses['recommend products'];
+                        foundMatch = true;
+                    } else {
+                        // Existing bot responses
+                        Object.keys(botResponses).forEach(key => {
+                            if (lowerCaseMessage.includes(key)) {
+                                foundMatch = true;
+                                if (typeof botResponses[key] === 'object') {
+                                    // For analysis+solution responses
+                                    response = `<strong>Analysis:</strong><br>${botResponses[key].analysis}<br><br>
+                                           <strong>Recommended Solution:</strong><br>${botResponses[key].solution}`;
+                                    if (key === 'upload') {
+                                        // Generate simulated analysis results
+                                        const concerns = ['dryness', 'oiliness', 'acne', 'wrinkles', 'redness', 'blackheads', 'dark spots', 'dark circles', 'black lips'];
+                                        const types = ['normal', 'dry', 'oily', 'combination', 'sensitive'];
+                                        const randomConcern = concerns[Math.floor(Math.random() * concerns.length)];
+                                        const randomType = types[Math.floor(Math.random() * types.length)];
+                                        
+                                        response = botResponses[key]
+                                            .replace('{concern}', randomConcern)
+                                            .replace('{type}', randomType)
+                                            .replace('{solution}', botResponses[randomConcern]?.solution || botResponses[randomType]?.solution || '');
+                                    }
+                                } else {
+                                    response = botResponses[key];
+                                }
+                                    addBotMessage(response);  // ⭐️ Yeh line missing thi
+
+                            }
+                        });
+                    }
+                    
+                    if (!foundMatch) {
+                        addBotMessage(response);
+                    }
+                }, 1500);
+            }
+            
+            // Add user message to chat
+            function addUserMessage(text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'user-bubble chat-bubble';
+                messageDiv.innerHTML = text;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // Add bot message to chat
+            function addBotMessage(text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'bot-bubble chat-bubble';
+                messageDiv.innerHTML = text;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // Event listeners
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+            
+            uploadBtn.addEventListener('click', () => {
+                skinUpload.value = ''; // Clear previous selections
+                skinUpload.click();
+            });
+            
+            // Store analysis results and images by file hash
+            const analysisCache = {};
+            
+            skinUpload.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    // Process all selected files
+                    Array.from(e.target.files).forEach(file => {
+                        // Verify it's an image
+                        if (!file.type.match('image.*')) {
+                            addBotMessage(`Skipping ${file.name} - please upload image files only (JPEG, PNG)`);
+                            return;
+                        }
+
+                        const reader = new FileReader();
+                        
+                        reader.onload = function(e) {
+                        // Generate unique file hash
+                        const fileHash = 'upload-' + file.size + '-' + file.lastModified + '-' + file.name;
+                        
+                        // Show uploaded image with face focus area immediately
+                        addUserMessage(`I've uploaded photo: ${file.name}`);
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'user-bubble chat-bubble';
+                        imgContainer.innerHTML = `
+                            <div class="face-focus-container">
+                                <img src="${e.target.result}" alt="Uploaded face photo for analysis"
+                                    class="w-full rounded-lg" style="max-height: 250px;">
+                                <div class="face-focus-overlay"></div>
+                            </div>
+                            <p class="text-xs mt-2 text-center">Analyzing skin in marked area...</p>
+                        `;
+                        chatMessages.appendChild(imgContainer);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                        // Show analysis in progress
+                        const typingIndicator = document.createElement('div');
+                        typingIndicator.className = 'bot-bubble chat-bubble typing-indicator';
+                        typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+                        chatMessages.appendChild(typingIndicator);
+                        chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll again to show typing indicator
+
+                        setTimeout(() => {
+                            chatMessages.removeChild(typingIndicator);
+                            
+                            // Check cache
+                            if (analysisCache[fileHash]) {
+                                showAnalysisResult(e.target.result, analysisCache[fileHash]); // Pass imageSrc
+                                return;
+                            }
+                            
+                            // --- Start of new analysis logic for uploaded images ---
+                            const formData = new FormData();
+                            formData.append("image", file); // Use the actual file object
+
+                            fetch("http://127.0.0.1:5000/analyzeImage", {
+                                method: "POST",
+                                credentials: "include",
+                                body: formData
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    // If the response is not OK, try to read it as text for more details
+                                    return response.text().then(text => { throw new Error(text) });
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                const analysis = {
+                                    skinType: { type: data.skin_type, note: data.note },
+                                    concern: { name: data.acne_detected ? "acne" : "healthy" }, // Assuming 'acne_detected' is a key
+                                    severity: data.severity || 'N/A', // Add severity if available from backend
+                                    hydration: data.hydration || 'N/A', // Add hydration if available
+                                    texture: data.texture || 'N/A', // Add texture if available
+                                };
+                                showAnalysisResult(e.target.result, analysis);
+                                analysisCache[fileHash] = analysis;
+                            })
+                            .catch(err => {
+                                console.error("Analysis error:", err);
+                                addBotMessage(`❌ Failed to analyze image: ${err.message || 'Unknown error'}. Please ensure the backend server is running and accessible.`);
+                            });
+                            // --- End of new analysis logic for uploaded images ---
+
+                        }, 2500);
+                    };
+                        
+                        reader.readAsDataURL(file);
+                    });
+                }
+            });
+            
+            // Camera functionality
+            const cameraModal = document.getElementById('camera-modal');
+            const cameraBtn = document.getElementById('camera-btn');
+            const closeCamera = document.getElementById('close-camera');
+            const cameraFeed = document.getElementById('camera-feed');
+            const captureBtn = document.getElementById('capture-btn');
+            const photoCanvas = document.getElementById('photo-canvas');
+            
+            cameraBtn.addEventListener('click', async () => {
+                try {
+                    cameraModal.classList.remove('hidden');
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            facingMode: 'user' 
+                        } 
+                    });
+                    cameraFeed.srcObject = stream;
+                } catch (err) {
+                    addBotMessage("Couldn't access camera. Please make sure camera permissions are enabled.");
+                    cameraModal.classList.add('hidden');
+                }
+            });
+            
+            closeCamera.addEventListener('click', () => {
+                cameraModal.classList.add('hidden');
+                const stream = cameraFeed.srcObject;
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            });
+            
+       captureBtn.addEventListener('click', () => {
+          const context = photoCanvas.getContext("2d");
+          // Set canvas dimensions to match video feed for accurate capture
+          photoCanvas.width = cameraFeed.videoWidth;
+          photoCanvas.height = cameraFeed.videoHeight;
+          context.drawImage(cameraFeed, 0, 0, photoCanvas.width, photoCanvas.height);
+
+               photoCanvas.toBlob(async (blob) => {
+  const imageSrc = URL.createObjectURL(blob);
+
+
+  // Show image in chat
+  addUserMessage("I've taken a live photo for analysis:");
+  const imgContainer = document.createElement('div');
+  imgContainer.className = 'user-bubble chat-bubble';
+  imgContainer.innerHTML = `
+      <div class="face-focus-container">
+          <img src="${imageSrc}" alt="Live face photo for analysis"
+              class="w-full rounded-lg" style="max-height: 250px;">
+          <div class="face-focus-overlay"></div>
+      </div>
+  `;
+  chatMessages.appendChild(imgContainer);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+const stream = cameraFeed.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      cameraFeed.srcObject = null;
+    }
+    cameraModal.classList.add('hidden');
+  // ✅ Send to backend to save to history
+  const formData = new FormData();
+  formData.append("image", blob);
+
+  const typingIndicator = document.createElement("div");
+  typingIndicator.className = "bot-bubble chat-bubble typing-indicator";
+  typingIndicator.innerHTML = "<span></span><span></span><span></span>";
+  chatMessages.appendChild(typingIndicator);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  fetch("http://127.0.0.1:5000/analyzeImage", {
+    method: "POST",
+    credentials: "include",
+    body: formData
+  })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => { throw new Error(text) });
+        }
+        return response.json();
+    })
+    .then(data => {
+      chatMessages.removeChild(typingIndicator);
+      // --- MODIFICATION START ---
+      // Hardcode the analysis result for live photos
+      const analysis = {
+  skinType: { type: data.skin_type, note: data.note },
+  concern: { name: data.acne_detected ? "acne" : "healthy" },
+  severity: data.severity || 'N/A',
+  hydration: data.hydration || 'N/A',
+  texture: data.texture || 'N/A'
+};
+showAnalysisResult(imageSrc, analysis);
+
+      // --- MODIFICATION END ---
+    })
+    .catch(err => {
+      chatMessages.removeChild(typingIndicator);
+      addBotMessage(`❌ Failed to analyze image: ${err.message || 'Unknown error'}. Please ensure the backend server is running and accessible.`);
+    });
+}, "image/jpeg", 0.9);
+
+            });
+
+            fetch("http://127.0.0.1:5000/check-session", {
+  credentials: "include"
+})
+  .then(res => res.json())
+  .then(data => {
+    if (!data.user_id) {
+      addBotMessage("⚠️ Please log in before uploading your image. Session not found.");
+    }
+  });
+
+            function analyzeSkinPhoto() {
+                // This function is now primarily for live photo analysis simulation,
+                // but the core logic for generating analysis is in generateAnalysis()
+                // and displaying is in showAnalysisResult().
+                // The direct call to this function from captureBtn is now replaced by the blob-based logic.
+                // Keeping it for completeness, but its direct use might be phased out.
+                chatMessages.querySelector('.typing-indicator').remove();
+                
+                const newAnalysis = generateAnalysis();
+                // For live photos, we don't have a direct file object to hash easily here.
+                // The hashing for live photos is now handled directly in captureBtn.
+                // This function might be redundant if all analysis goes through the blob/file reader.
+                // For now, it will just generate and display without caching for this specific path.
+                // To cache live photos, the hash needs to be generated from the blob and passed.
+                // The captureBtn logic already does this.
+                addBotMessage(`(Simulated analysis for live photo - for consistent results, use file upload or re-capture the exact same scene)<br><br>${formatAnalysisResult(newAnalysis)}`);
+            }
+
+            // --- MODIFICATION START ---
+            // This function is no longer used for live photo analysis after the change in captureBtn.
+            // It can be removed or kept for other simulated analysis if needed.
+            function generateAnalysis() {
+                // This function will now return a fixed analysis for consistency
+                return {
+                    concern: {name: 'healthy'},
+                    severity: 'N/A', 
+                    skinType: {type: 'normal', note: 'well-balanced'},
+                    hydration: 'Adequate',
+                    texture: 'Smooth'
+                };
+            }
+            // --- MODIFICATION END ---
+
+function showHistory() {
+
+  document.getElementById("video")?.classList.add("hidden");
+  document.querySelector("button[onclick='captureImage()']")?.classList.add("hidden");
+  document.getElementById("showbtn")?.classList.add("hidden");
+  document.getElementById("resultText")?.classList.add("hidden");
+  document.getElementById("chatBox")?.classList.add("hidden");
+
+  // ✅ Tailwind fix
+  document.getElementById("historyContainer")?.classList.remove("hidden");
+
+  const historyList = document.getElementById("historyList");
+  historyList.innerHTML = "Loading history...";
+
+  fetch("http://127.0.0.1:5000/history", {
+    method: "GET",
+    credentials: "include",
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (!data.length) {
+        historyList.innerHTML = "<p>No history found.</p>";
+        return;
+      }
+      historyList.innerHTML = "";
+      data.forEach((record) => {
+const recordDiv = document.createElement("div");
+recordDiv.className = "p-4 rounded-lg shadow border";
+recordDiv.style.background = "linear-gradient(135deg, #F3E8FF 0%, #FCE4EC 100%)";
+recordDiv.style.color = "#000";  // force black text
+
+  recordDiv.innerHTML = `
+    <p><strong>Date:</strong> ${record.date}</p>
+        <p><strong>Skin Type:</strong> ${record.skin_type}</p>
+        <p><strong>Acne Detected:</strong> ${record.acne_detected ? "Yes" : "No"}</p>
+        <p><strong>Product Recommendation:</strong> ${record.recommendation}</p>
+        <img src="${record.image_path}" alt="Captured skin" style="width: 100%; max-width: 200px; border-radius: 8px; margin-top: 5px;" />
+    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <button onclick="downloadReport(${record.id})" 
+  class="w-full flex items-center justify-center gap-2 
+         bg-purple-100 text-purple-700 
+         rounded-lg p-3 transition hover:bg-purple-200 
+         border border-purple-500">
+  <span class="text-sm font-medium">Download PDF</span>
+</button>
+
+<button onclick="deleteHistory(${record.id}, this)" 
+  class="w-full flex items-center justify-center gap-2 
+         bg-red-100 text-red-700 
+         rounded-lg p-3 transition hover:bg-red-200 
+         border border-red-500">
+  <span class="text-sm font-medium">Delete</span>
+</button>
+
+
+    </div>
+  `;
+
+  historyList.appendChild(recordDiv);      });
+    })
+    .catch((err) => {
+      historyList.innerHTML = "<p>Error loading history.</p>";
+      console.error(err);
+    });
+}
+
+function closeHistory() {
+  // ✅ Tailwind fix
+  document.getElementById("historyContainer")?.classList.add("hidden");
+
+  document.getElementById("video")?.classList.remove("hidden");
+  document.querySelector("button[onclick='captureImage()']")?.classList.remove("hidden");
+  document.getElementById("showbtn")?.classList.remove("hidden");
+  document.getElementById("resultText")?.classList.remove("hidden");
+  document.getElementById("chatBox")?.classList.remove("hidden");
+}
+
+
+  fetch("http://127.0.0.1:5000/check-session", {
+  credentials: "include",
+})
+  .then((res) => res.json())
+  .then((data) => {
+    if (data.user_id) {
+      // startCamera(); // <- add this line!
+    }
+  });
+function downloadReport(historyId) {
+  fetch(`http://127.0.0.1:5000/download-report/${historyId}`, {
+    credentials: "include"
+  })
+    .then(response => {
+      if (!response.ok) throw new Error("Download failed");
+      return response.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `skin_report_${historyId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    })
+    .catch(err => {
+      alert("Error downloading PDF: " + err.message);
+    });
+}
+function deleteHistory(historyId, buttonElement) {
+  if (!confirm("Are you sure you want to delete this history item?")) return;
+
+  fetch(`http://127.0.0.1:5000/delete-history/${historyId}`, {
+    method: "DELETE",
+    credentials: "include",
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.message) {
+        // Remove the parent container (record div)
+        buttonElement.closest("div").parentElement.remove();
+      } else {
+        alert("Failed to delete.");
+      }
+    })
+    .catch((err) => {
+      console.error("Error deleting history:", err);
+      alert("Error occurred while deleting.");
+    });
+}
+
+            // Helper function to format the analysis result HTML
+            function formatAnalysisResult(analysis) {
+                return `
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-purple-800 mb-2">✨ Skin Analysis Results</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="font-medium mb-1">Skin Assessment</h4>
+                                <ul class="text-sm space-y-1">
+                                    <li><strong>Type:</strong> ${analysis.skinType.type} (${analysis.skinType.note})</li>
+                                    <li><strong>Primary Concern:</strong> ${analysis.concern.name} (Severity: ${analysis.severity})</li>
+                                    <li><strong>Hydration:</strong> ${analysis.hydration}</li>
+                                    <li><strong>Texture:</strong> ${analysis.texture}</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-medium mb-1">Suggested Routine</h4>
+                                ${botResponses[analysis.concern.name]?.solution || `
+                                    <ol class="text-sm list-decimal pl-5 space-y-1">
+                                        <li>Gentle cleanser (AM/PM)</li>
+                                        <li>Hydrating serum</li>
+                                        <li>Targeted treatment for ${analysis.concern.name}</li>
+                                        <li>Moisturizer suitable for ${analysis.skinType.type} skin</li>
+                                    </ol>
+                                `}
+                            </div>
+                        </div>
+                        <button class="mt-3 w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition">
+                            Get Personalized Product Recommendations
+                        </button>
+                    </div>
+                `;
+            }
+            
+            function showAnalysisResult(imageSrc, analysis) {
+                // First create a div to hold both image and analysis
+                const responseDiv = document.createElement('div');
+                responseDiv.className = 'bot-bubble chat-bubble';
+                
+                // Add the analyzed image
+                responseDiv.innerHTML = `
+                    <div class="face-focus-container mb-4">
+                        <img src="${imageSrc}" alt="Analyzed face photo" 
+                            class="w-full rounded-lg" style="max-height: 250px;">
+                        <div class="face-focus-overlay"></div>
+                    </div>
+                    ${formatAnalysisResult(analysis)}
+                `;
+                
+                chatMessages.appendChild(responseDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Initialize with some sample messages
+            setTimeout(() => {
+                addBotMessage(`I can analyze and provide solutions for:<br><br>
+                • <strong>Dry skin</strong> - flakiness, tightness<br>
+                • <strong>Oily skin</strong> - shine, enlarged pores<br>
+                • <strong>Acne</strong> - breakouts, inflammation<br>
+                • <strong>Blackheads</strong> - clogged pores<br>               
+                • <strong>Dark spots</strong> - hyperpigmentation<br>
+                • <strong>Dark circles</strong> - under-eye discoloration<br>
+                • <strong>Black lips</strong> - lip pigmentation<br>
+                • <strong>Wrinkles</strong> - fine lines<br>
+                • <strong>Sensitive skin</strong> - redness, irritation<br><br>
+                Try asking about any specific concern or ask me to "recommend products"!`);
+            }, 1000);
+            window.showHistory = showHistory;
+  window.closeHistory = closeHistory;
+window.deleteHistory = deleteHistory;
+  window.downloadReport = downloadReport;
+        });
+        
+    </script>
+
+    <!-- Camera Modal -->
+    <div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg overflow-hidden w-full max-w-md">
+            <div class="p-4 bg-purple-600 text-white flex justify-between items-center">
+                <h3 class="font-medium">Take a Photo</h3>
+                <button id="close-camera" class="text-white hover:text-purple-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <div class="relative bg-gray-100 rounded-lg overflow-hidden">
+                    <video id="camera-feed" autoplay playsinline class="w-full h-auto"></video>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-64 h-64 border-4 border-purple-400 border-dashed rounded-full opacity-70"></div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center mt-4 gap-4">
+                    <button id="capture-btn" class="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="photo-canvas" class="hidden"></canvas>
+</body>
+</html>
